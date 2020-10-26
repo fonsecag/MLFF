@@ -281,6 +281,10 @@ class MainHandler():
 		funcs_def = func_dict_from_module(para_def_mod)
 
 		merge_para_dicts(para_def,para) #WAI
+		# make an exception for certain things
+		if ('load_dataset' in para) and ('var_funcs' in para['load_dataset']):
+			para_def['load_dataset']['var_funcs'] = \
+				para['load_dataset']['var_funcs']
 
 		self.para = para_def
 		z = {**funcs_def,**funcs} #WAI
