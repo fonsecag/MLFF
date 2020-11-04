@@ -38,7 +38,7 @@ def sgdml_all_default(train_indices, args):
 				a['R_train'] = R_train
 				a['F_train'] = F_train
 				if 'E_train' in a:
-					a['E_train'] = R_train
+					a['E_train'] = E_train
 				a['idxs_train'] = train_indices
 				np.savez_compressed(name, **a)
 
