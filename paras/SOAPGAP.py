@@ -25,6 +25,7 @@ gap_fit at_file=__TRAIN_FILE__ \
     do_copy_at_file=F sparse_separate_file=F \
     gp_file=__END_FILE__
 
+echo Donezo
 wait
 """
 
@@ -35,7 +36,7 @@ parameters = {
         "schnet_preprocessed_npz": False,
         "var_funcs": {
             0: "func:r_to_dist",
-            1: "func:extract_R_concat",
+            1: "func:npz_indices",
             2: "func:extract_F_concat",
             3: "func:extract_E",
         },  # end of 'var_funcs'
@@ -72,11 +73,11 @@ parameters = {
     },  # end of 'clusters'
     "train_models": {
         #
-        "model_ext": ".xml",
+        "model_ext": "",  #  is a directory, in order to save trind
         "train_func": "func:gapsoap_train_default",
         "train_func_args": [gap_base_command],
         "load_func": "func:load_gap_model",  # needs to also load trianing set
-        "model_info_func": "func:gap_model_info",
+        "model_info_func": None,
     },
     "predict_error": {
         "error_sub_indices": "func:return_second_argument",  # twenty_each
@@ -92,7 +93,6 @@ parameters = {
         "predicts": {
             0: {
                 "predict_func": "func:gap_predict_F",
-                "batch_size": 100,
                 "input_var_index": 1,
             },
         },  # end of predicts

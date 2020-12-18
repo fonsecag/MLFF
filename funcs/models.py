@@ -539,6 +539,51 @@ def gapsoap_train_default(
     train_file = indices_to_xyz_gap(self, train_indices)
     base_command = (
         base_command.replace("__TRAIN_FILE", train_file)
-        .replace("__END_FILE__", model_path)
+        .replace("__END_FILE__", "model.xml")
         .replace("__WORK_DIR__", self.storage_dir)
     )
+
+    subprocess.call(base_command, shell=True)
+
+    os.mkdir(model_path)
+    os.rename("model.xml", os.path.join(model_path, "model.xml"))
+    np.save(os.path.join(model_path, "training_indices.npy"), train_indices)
+
+
+def load_gap_model(self, path):
+    from quippy.potential import Potential
+
+    ind = np.load(os.path.join(path, "training_indices.npy"), allow_pickle=True)
+
+    gap_path = os.path.join(path, "model.xml")
+
+    return Potential(gap_path), ind
+
+
+def gap_predict_F(self, indices):
+    from data_handling import indices_to_xyz_gap
+    from ase.io import read
+
+    model = self.curr_model
+    F = []
+
+    temp_file = indices_to_xyz_gap(self, indices)
+    data = read(temp_file)
+    data.set_calculator(model)
+
+    message = f"Predicting {len(indices)} atoms with GAP model"
+
+    N = len(indices)
+    start_time, eta = time.time(), 0
+    for i in range(N):
+
+        F.append(data[i].get_forces())
+
+        if i % 100 == 0:
+            avg_time = (time.time() - start_time) / (i + 1)
+
+        eta = (N - i + 1) * avg_time
+
+    print_x_out_of_y_eta(message, N, N, time.time() - start_time, True, width=width)
+
+    return np.array(F)

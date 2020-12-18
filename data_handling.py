@@ -229,7 +229,7 @@ def indices_to_xyz_gap(self, indices=None):
     E = data["E"][indices].reshape(-1) * kcalmol_to_eV
     F = data["F"][indices] * f_convert
 
-    z = [_z_to_z_str_dict[x] for x in data["z"]]
+    z = [z_to_z_str_dict[x] for x in data["z"]]
     n_atoms = len(z)
 
     file_name = os.path.join(self.temp_dir, f"temp_xyz_gap_{len(indices)}")
@@ -244,7 +244,7 @@ def indices_to_xyz_gap(self, indices=None):
         r, f = R[i], F[i]
         for j in range(n_atoms):
             temp_file.write(
-                f"{z[i]:<20}{r[j][0]:<20.6f}{r[j][1]:<20.6f}{r[j][2]:<20.6f}{f[j][0]:<20.6f}{f[j][1]:<20.6f}{f[j][2]:<20.6f}"
+                f"{z[j]:<20}{r[j][0]:<20.6f}{r[j][1]:<20.6f}{r[j][2]:<20.6f}{f[j][0]:<20.6f}{f[j][1]:<20.6f}{f[j][2]:<20.6f}"
             )
 
     temp_file.close()
