@@ -537,8 +537,10 @@ def gapsoap_train_default(
         train_indices = np.random.choice(np.arange(N), train_indices)
 
     train_file = indices_to_xyz_gap(self, train_indices)
+    train_file = train_file.replace(f"{self.storage_dir}/", "")
+
     base_command = (
-        base_command.replace("__TRAIN_FILE", train_file)
+        base_command.replace("__TRAIN_FILE__", train_file)
         .replace("__END_FILE__", "model.xml")
         .replace("__WORK_DIR__", self.storage_dir)
     )
@@ -546,7 +548,10 @@ def gapsoap_train_default(
     subprocess.call(base_command, shell=True)
 
     os.mkdir(model_path)
-    os.rename("model.xml", os.path.join(model_path, "model.xml"))
+    os.rename(
+        os.path.join(self.storage_dir, "model.xml"),
+        os.path.join(model_path, "model.xml"),
+    )
     np.save(os.path.join(model_path, "training_indices.npy"), train_indices)
 
 
@@ -557,7 +562,7 @@ def load_gap_model(self, path):
 
     gap_path = os.path.join(path, "model.xml")
 
-    return Potential(gap_path), ind
+    return Potential(param_filename=gap_path), ind
 
 
 def gap_predict_F(self, indices):
@@ -567,22 +572,23 @@ def gap_predict_F(self, indices):
     model = self.curr_model
     F = []
 
+    print(" ")
     temp_file = indices_to_xyz_gap(self, indices)
-    data = read(temp_file)
-    data.set_calculator(model)
-
+    data = read(temp_file, format="xyz", index=":")
     message = f"Predicting {len(indices)} atoms with GAP model"
 
     N = len(indices)
     start_time, eta = time.time(), 0
     for i in range(N):
-
-        F.append(data[i].get_forces())
+        data[i].set_calculator(model)
+        F.append(data[i].get_forces().flatten() / 1.88972)
 
         if i % 100 == 0:
             avg_time = (time.time() - start_time) / (i + 1)
 
         eta = (N - i + 1) * avg_time
+
+        print_x_out_of_y_eta(message, i, N, eta, True, width=width)
 
     print_x_out_of_y_eta(message, N, N, time.time() - start_time, True, width=width)
 

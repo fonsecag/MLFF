@@ -1,164 +1,178 @@
 from run import MainHandler
 from .clustererror import ClusterErrorHandler
 from .cluster import ClusterHandler
-from util import*
+from util import *
 
 
 class TrainHandler(ClusterErrorHandler):
 
-	curr_model = None
-	def __init__(self,args, **kwargs):
-		super().__init__(args, **kwargs)
-		self.n_substages = self.n_substages -2 + self.args['n_steps']
-		# -1 because no error calc on its own, no plotting
+    curr_model = None
 
-		self.n_stages = self.n_main_stages + self.n_substages
-		self.info['training_indices'] = []
+    def __init__(self, args, **kwargs):
+        super().__init__(args, **kwargs)
+        self.n_substages = self.n_substages - 2 + self.args["n_steps"]
+        #  -1 because no error calc on its own, no plotting
 
-	# n_substages = ClusterHandler.n_substages + 1  # needs be dynamic
+        self.n_stages = self.n_main_stages + self.n_substages
+        self.info["training_indices"] = []
 
-	def run_command(self):
-		ClusterHandler.run_command(self)
-		from funcs.models import sgdml_train_default
-		# (self, dataset_tuple, n_train, model_path, sgdml_args)
-		ext = self.call_para('train_models','model_ext')
-		model_path = os.path.join(self.storage_dir,f'model{ext}')
-		old_model_path = os.path.join(self.storage_dir,f'old_model')
+    # n_substages = ClusterHandler.n_substages + 1  # needs be dynamic
 
-		## INITIAL MODEL
-		self.init_model()
-		self.print_stage('Creating initial model')
-		self.train_load_model(model_path, self.args['init'])
-		if not os.path.exists(model_path):
-			shutil.copy( self.args['init'], model_path)
-		self.info['training_indices'].append(self.training_indices)
+    def run_command(self):
+        ClusterHandler.run_command(self)
+        from funcs.models import sgdml_train_default
 
-		## ACTUAL ITERATIONS
-		n_steps = self.args['n_steps']
-		for i in range(n_steps):
-			self.print_stage(f'Iterating model ({i+1}/{n_steps})')	
+        #  (self, dataset_tuple, n_train, model_path, sgdml_args)
+        ext = self.call_para("train_models", "model_ext")
+        model_path = os.path.join(self.storage_dir, f"model{ext}")
+        old_model_path = os.path.join(self.storage_dir, f"old_model")
 
-			new_indices = self.find_problematic_indices()
+        ## INITIAL MODEL
+        self.init_model()
+        self.print_stage("Creating initial model")
+        self.train_load_model(model_path, self.args["init"])
+        if not os.path.exists(model_path):
+            shutil.copy(self.args["init"], model_path)
+        self.info["training_indices"].append(self.training_indices)
 
-			if os.path.exists(old_model_path):
-				if os.path.isdir(old_model_path):
-					shutil.rmtree(old_model_path)
-				else:
-					os.remove(old_model_path)
+        ## ACTUAL ITERATIONS
+        n_steps = self.args["n_steps"]
+        for i in range(n_steps):
+            self.print_stage(f"Iterating model ({i+1}/{n_steps})")
 
-			# toad: do better
-			save_path = f'{old_model_path}_{len(self.training_indices)}{ext}'
-			shutil.move(model_path, save_path)
+            new_indices = self.find_problematic_indices()
 
-			tr_ind = list(self.training_indices) + list(new_indices)
-			self.training_indices = tr_ind
+            if os.path.exists(old_model_path):
+                if os.path.isdir(old_model_path):
+                    shutil.rmtree(old_model_path)
+                else:
+                    os.remove(old_model_path)
 
-			# # free up memory, sGDML
-			# if hasattr(self.curr_model, 'glob_id'):
-			# 	glob_id = self.curr_model.glob_id
-			# 	if (glob_id is not None) and ("globs" in globals()):
-			# 		global globs
-			# 		if len(globs)>glob_id:
-			# 			globs[glob_id] = None
+            #  toad: do better
+            save_path = f"{old_model_path}_{len(self.training_indices)}{ext}"
+            shutil.move(model_path, save_path)
 
-			self.curr_model = None 
-			self.train_load_model(model_path, tr_ind, save_path)
-			self.info['training_indices'].append(self.training_indices)
+            tr_ind = list(self.training_indices) + list(new_indices)
+            self.training_indices = tr_ind
 
-	def find_problematic_indices(self):
-		self.calculate_errors(extended = False, sample_wise = True)
+            # # free up memory, sGDML
+            # if hasattr(self.curr_model, 'glob_id'):
+            # 	glob_id = self.curr_model.glob_id
+            # 	if (glob_id is not None) and ("globs" in globals()):
+            # 		global globs
+            # 		if len(globs)>glob_id:
+            # 			globs[glob_id] = None
 
-		self.fine_indices = self.call_para(
-			'fine_clustering', 'fine_indices_func', 
-			args=[self, self.cluster_indices, self.cluster_err])
+            self.curr_model = None
+            self.train_load_model(model_path, tr_ind, save_path)
+            self.info["training_indices"].append(self.training_indices)
 
-		self.fine_clustering()
+    def find_problematic_indices(self):
+        self.calculate_errors(extended=False, sample_wise=True)
 
-		self.calculate_fine_errors()
+        self.fine_indices = self.call_para(
+            "fine_clustering",
+            "fine_indices_func",
+            args=[self, self.cluster_indices, self.cluster_err],
+        )
 
-		new_indices = self.call_para('fine_clustering','indices_func',
-			args = [
-			self, self.fine_cl_indices, self.sample_err, self.args['step_size']
-			])
+        self.fine_clustering()
 
-		return new_indices
+        print("got here")
 
-	def calculate_fine_errors(self):
+        self.calculate_fine_errors()
 
-		print_subtitle('Calculating error on fine clusters')
+        new_indices = self.call_para(
+            "fine_clustering",
+            "indices_func",
+            args=[self, self.fine_cl_indices, self.sample_err, self.args["step_size"]],
+        )
 
-		print_ongoing_process('Preparing data')
+        return new_indices
 
-		#helping variables
-		cluster_indices=self.fine_cl_indices
-		n_clusters=len(cluster_indices)
+    def calculate_fine_errors(self):
 
-		pred_index = self.call_para(
-			'predict_error', 'sample_wise_predicts_index')
+        print_subtitle("Calculating error on fine clusters")
 
-		pred = self.predicts[pred_index]
+        print_ongoing_process("Preparing data")
 
-		comp_index = self.call_para(
-			'predict_error', 'sample_wise_comparison_var_index')
+        # helping variables
+        cluster_indices = self.fine_cl_indices
+        n_clusters = len(cluster_indices)
 
-		F_all = self.vars[comp_index]
-		print_ongoing_process('Data prepared', True)
+        pred_index = self.call_para("predict_error", "sample_wise_predicts_index")
 
-		indices = np.concatenate(cluster_indices)
-		calculated_indices = np.argwhere(~np.isnan(self.sample_err)).flatten()
-		filtered_indices = set(indices) - set(calculated_indices)
-		indices_to_calculate = list(filtered_indices)
+        pred = self.predicts[pred_index]
 
-		n_to_calc = len(indices_to_calculate)
-		if n_to_calc > 0:
-			print_ongoing_process(f'Predicting {n_to_calc} values')
-			F_pred = self.predict_indices(indices_to_calculate, pred_index)
-			pred[indices_to_calculate] = F_pred
-			F_data = F_all[indices_to_calculate]
-			print_ongoing_process(f'{n_to_calc} Values predicted', True)
+        comp_index = self.call_para("predict_error", "sample_wise_comparison_var_index")
 
-			err = self.call_para('predict_error', 'sample_wise_error_func',
-				args = [self, pred[indices_to_calculate], comp[indices_to_calculate]])
+        F_all = self.vars[comp_index]
+        print_ongoing_process("Data prepared", True)
 
-			# save errors 
-			self.sample_err[indices_to_calculate] = err 
+        indices = np.concatenate(cluster_indices)
 
+        print_ongoing_process("Finding sub indices")
+        sub_cl_indices = self.call_para(
+            "predict_error", "error_sub_indices", args=[self, cluster_indices]
+        )
+        sub_indices = np.concatenate(sub_cl_indices)
+        print_ongoing_process("Sub indices found", True)
 
-		print_ongoing_process('Calculating errors')
-		self.fine_cluster_err=[self.sample_err[x].mean() 
-			for x in cluster_indices]
-		print_ongoing_process('Errors on fine clusters calculated', True)
+        calculated_indices = np.argwhere(~np.isnan(self.sample_err)).flatten()
+        filtered_indices = set(sub_indices) - set(calculated_indices)
+        indices_to_calculate = list(filtered_indices)
 
-		self.print_fine_error()
+        n_to_calc = len(indices_to_calculate)
+        if n_to_calc > 0:
+            print_ongoing_process(f"Predicting {n_to_calc} values")
+            F_pred = self.predict_indices(indices_to_calculate, pred_index)
+            pred[indices_to_calculate] = F_pred
+            F_data = F_all[indices_to_calculate]
+            print_ongoing_process(f"{n_to_calc} Values predicted", True)
 
-	def print_fine_error(self):
-		err = self.sample_err 
-		ce = self.fine_cluster_err
+            err = self.call_para(
+                "predict_error",
+                "sample_wise_error_func",
+                args=[self, pred[indices_to_calculate], F_data],
+            )
 
-		summary_table = {}
-		summary_table['Min cl. err.'] = f"{np.min(ce):.3f}"
-		summary_table['Max cl. err.'] = f"{np.max(ce):.3f}"
-		summary_table['Avg cl. err.'] = f"{np.average(ce):.3f}"
+            #  save errors
+            self.sample_err[indices_to_calculate] = err
 
+        print_ongoing_process("Calculating errors")
+        self.fine_cluster_err = [self.sample_err[x].mean() for x in sub_cl_indices]
+        print_ongoing_process("Errors on fine clusters calculated", True)
 
-		print_table("Fine cluster error summary:",None,None,summary_table, width = 15)
+        self.print_fine_error()
 
-	def fine_clustering(self):
-		fine_indices = self.fine_indices 
+    def print_fine_error(self):
+        err = self.sample_err
+        ce = self.fine_cluster_err
 
-		from funcs.cluster import cluster_do
-		scheme=self.call_para('fine_clustering','clustering_scheme')
-		fine_cl_indices = cluster_do(self, scheme, fine_indices)
-		self.print_cluster_summary(fine_cl_indices)
-		self.fine_cl_indices = fine_cl_indices
+        summary_table = {}
+        summary_table["Min cl. err."] = f"{np.min(ce):.3f}"
+        summary_table["Max cl. err."] = f"{np.max(ce):.3f}"
+        summary_table["Avg cl. err."] = f"{np.average(ce):.3f}"
 
-	# 'predict_error':{
-	# 	'predict_var_index':1,
-	# 	'compare_var_index':2,
-	# 	'predict_func':'func:sgdml_predict_F',
-	# 	'error_func':'func:MSE_sample_wise',
-	# }
+        print_table("Fine cluster error summary:", None, None, summary_table, width=15)
 
-	def save_command(self):
+    def fine_clustering(self):
+        fine_indices = self.fine_indices
 
-		super().save_command()
+        from funcs.cluster import cluster_do
+
+        scheme = self.call_para("fine_clustering", "clustering_scheme")
+        fine_cl_indices = cluster_do(self, scheme, fine_indices)
+        self.print_cluster_summary(fine_cl_indices)
+        self.fine_cl_indices = fine_cl_indices
+
+    # 'predict_error':{
+    # 	'predict_var_index':1,
+    # 	'compare_var_index':2,
+    # 	'predict_func':'func:sgdml_predict_F',
+    # 	'error_func':'func:MSE_sample_wise',
+    # }
+
+    def save_command(self):
+
+        super().save_command()

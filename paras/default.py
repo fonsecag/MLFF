@@ -131,10 +131,9 @@ parameters = {
     "predict_error": {
         "error_sub_indices": "func:return_second_argument",  # twenty_each
         "main_error_index": 0,
-        #  the error that is used for those commands that only need one type
-        #  of error (like 'train') rather than an entire analysis
-        #  error will be saved into self.cluster_err (by_cluster must be true!)
-        # only main error is calculated if extended = False in calculate_error
+        "predict_sample": False,
+        "sample_fraction": 0.1,
+        "sample_min": 100,
         "sample_wise_error_func": "func:MSE_sample_wise",
         "sample_wise_predicts_index": 0,
         "sample_wise_comparison_var_index": 2,
