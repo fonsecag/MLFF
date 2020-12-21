@@ -1,9 +1,8 @@
 gap_base_command = """
 export PATH=/home/users/gfonseca/QUIP/build/linux_x86_64_gfortran/:$PATH
+
 module load lang/SciPy-bundle/2019.03-intel-2019a
 module load tools/binutils/2.32-GCCcore-8.2.0
-
-#export LD_PRELOAD=/home/users/gfonseca/anaconda3/lib/libmkl_core.so:/home/users/gfonseca/anaconda3/lib/libmkl_sequential.so
 
 source /home/users/gfonseca/anaconda3/bin/activate quippy
 
@@ -26,6 +25,7 @@ gap_fit at_file=__TRAIN_FILE__ \
     do_copy_at_file=F sparse_separate_file=F \
     gp_file=__END_FILE__ | grep -v FoX
 
+echo Donezo
 wait
 """
 
@@ -83,6 +83,10 @@ parameters = {
         "error_sub_indices": "func:cluster_fraction_min",  # twenty_each
         "error_sub_indices_args": [0.1, 100],  # fraction, min
         "main_error_index": 0,
+        #  the error that is used for those commands that only need one type
+        #  of error (like 'train') rather than an entire analysis
+        #  error will be saved into self.cluster_err (by_cluster must be true!)
+        # only main error is calculated if extended = False in calculate_error
         "sample_wise_error_func": "func:MSE_sample_wise",
         "sample_wise_predicts_index": 0,
         "sample_wise_comparison_var_index": 2,
@@ -186,3 +190,6 @@ parameters = {
         # },
     },
 }
+
+
+#  functions
